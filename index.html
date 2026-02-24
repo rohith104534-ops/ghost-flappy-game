@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ghost Flappy 👻</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      font-family: Arial;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: linear-gradient(#0f2027, #203a43, #2c5364);
+    }
+    #restartBtn {
+      display: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+<button id="restartBtn">Restart 👻</button>
+
+<audio id="jumpSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="hitSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+<audio id="scoreSound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const jumpSound = document.getElementById("jumpSound");
+const hitSound = document.getElementById("hitSound");
+const scoreSound = document.getElementById("scoreSound");
+const restartBtn = document.getElementById("restartBtn");
+
+let gravity = 0.5;
+let velocity;
+let ghost;
+let pipes;
+let score;
+let gameOver;
+
+function init() {
+  velocity = 0;
+  ghost = { x: 80, y: 250, radius: 22 };
+  pipes = [];
+  score = 0;
+  gameOver = false;
+  restartBtn.style.display = "none";
+}
+
+function createPipe() {
+  let gap = 150;
+  let topHeight = Math.random() * 300 + 50;
+  pipes.push({
+    x: canvas.width,
+    top: topHeight,
+    bottom: topHeight + gap,
+    width: 60,
+    passed: false
+  });
+}
+
+function drawGhost() {
+  ctx.beginPath();
+  ctx.shadowColor = "cyan";
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = "rgba(180,220,255,0.9)";
+  ctx.arc(ghost.x, ghost.y, ghost.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawPipes() {
+  ctx.fillStyle = "#00ff99";
+  pipes.forEach(pipe => {
+    ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+    ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height);
+  });
+}
+
+function update() {
+  if (gameOver) return;
+
+  velocity += gravity;
+  ghost.y += velocity;
+
+  if (ghost.y + ghost.radius > canvas.height || ghost.y - ghost.radius < 0) {
+    endGame();
+  }
+
+  pipes.forEach(pipe => {
+    pipe.x -= 2;
+
+    if (
+      ghost.x + ghost.radius > pipe.x &&
+      ghost.x - ghost.radius < pipe.x + pipe.width &&
+      (ghost.y - ghost.radius < pipe.top ||
+        ghost.y + ghost.radius > pipe.bottom)
+    ) {
+      endGame();
+    }
+
+    if (!pipe.passed && pipe.x + pipe.width < ghost.x) {
+      pipe.passed = true;
+      score++;
+      scoreSound.play();
+    }
+  });
+
+  pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+
+  if (Math.random() < 0.02) createPipe();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawGhost();
+  drawPipes();
+
+  ctx.fillStyle = "white";
+  ctx.font = "22px Arial";
+  ctx.fillText("Score: " + score, 20, 40);
+
+  if (gameOver) {
+    ctx.fillText("GAME OVER 👻", 110, 300);
+  }
+}
+
+function endGame() {
+  if (!gameOver) hitSound.play();
+  gameOver = true;
+  restartBtn.style.display = "inline-block";
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+function jump() {
+  if (!gameOver) {
+    velocity = -8;
+    jumpSound.play();
+  }
+}
+
+document.addEventListener("keydown", jump);
+canvas.addEventListener("click", jump);
+
+restartBtn.addEventListener("click", () => {
+  init();
+});
+
+init();
+gameLoop();
+</script>
+
+</body>
+</html>
