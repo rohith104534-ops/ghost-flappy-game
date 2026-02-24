@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ghost Flappy 👻</title>
+  <title>Rohith Ghost Game 👻</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       margin: 0;
       overflow: hidden;
       background: black;
-      font-family: Arial;
       text-align: center;
+      font-family: Arial;
     }
     canvas {
       display: block;
@@ -18,7 +18,7 @@
     }
     #restartBtn {
       display: none;
-      padding: 10px 20px;
+      padding: 12px 25px;
       font-size: 18px;
       margin-top: 10px;
       cursor: pointer;
@@ -38,80 +38,84 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+const restartBtn = document.getElementById("restartBtn");
 const jumpSound = document.getElementById("jumpSound");
 const hitSound = document.getElementById("hitSound");
 const scoreSound = document.getElementById("scoreSound");
-const restartBtn = document.getElementById("restartBtn");
 
-let gravity = 0.5;
+const playerImg = new Image();
+playerImg.src = "me.jpg";
+
+const pipeImg = new Image();
+pipeImg.src = "model.jpg";
+
+let gravity = 0.6;
 let velocity;
-let ghost;
-let pipes;
 let score;
+let pipes;
 let gameOver;
+let playerY;
+
+const playerX = 80;
+const playerSize = 65;
 
 function init() {
   velocity = 0;
-  ghost = { x: 80, y: 250, radius: 22 };
-  pipes = [];
   score = 0;
+  pipes = [];
   gameOver = false;
+  playerY = 250;
   restartBtn.style.display = "none";
 }
 
 function createPipe() {
-  let gap = 150;
-  let topHeight = Math.random() * 300 + 50;
+  const gap = 180;
+  const topHeight = Math.random() * 220 + 60;
+
   pipes.push({
     x: canvas.width,
+    width: 90,
     top: topHeight,
     bottom: topHeight + gap,
-    width: 60,
     passed: false
   });
 }
 
-function drawGhost() {
+function drawPlayer() {
+  ctx.save();
   ctx.beginPath();
-  ctx.shadowColor = "cyan";
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = "rgba(180,220,255,0.9)";
-  ctx.arc(ghost.x, ghost.y, ghost.radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-}
-
-function drawPipes() {
-  ctx.fillStyle = "#00ff99";
-  pipes.forEach(pipe => {
-    ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
-    ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height);
-  });
+  ctx.arc(playerX + playerSize/2, playerY + playerSize/2, playerSize/2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(playerImg, playerX, playerY, playerSize, playerSize);
+  ctx.restore();
 }
 
 function update() {
   if (gameOver) return;
 
   velocity += gravity;
-  ghost.y += velocity;
+  playerY += velocity;
 
-  if (ghost.y + ghost.radius > canvas.height || ghost.y - ghost.radius < 0) {
+  // Ground / ceiling collision
+  if (playerY < 0 || playerY + playerSize > canvas.height) {
     endGame();
   }
 
   pipes.forEach(pipe => {
-    pipe.x -= 2;
+    pipe.x -= 3;
 
+    // Collision detection
     if (
-      ghost.x + ghost.radius > pipe.x &&
-      ghost.x - ghost.radius < pipe.x + pipe.width &&
-      (ghost.y - ghost.radius < pipe.top ||
-        ghost.y + ghost.radius > pipe.bottom)
+      playerX + playerSize > pipe.x &&
+      playerX < pipe.x + pipe.width &&
+      (playerY < pipe.top || playerY + playerSize > pipe.bottom)
     ) {
       endGame();
     }
 
-    if (!pipe.passed && pipe.x + pipe.width < ghost.x) {
+    // Score
+    if (!pipe.passed && pipe.x + pipe.width < playerX) {
       pipe.passed = true;
       score++;
       scoreSound.play();
@@ -123,10 +127,20 @@ function update() {
   if (Math.random() < 0.02) createPipe();
 }
 
+function drawPipes() {
+  pipes.forEach(pipe => {
+    // Top pipe
+    ctx.drawImage(pipeImg, pipe.x, 0, pipe.width, pipe.top);
+
+    // Bottom pipe
+    ctx.drawImage(pipeImg, pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
+  });
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  drawGhost();
+  drawPlayer();
   drawPipes();
 
   ctx.fillStyle = "white";
@@ -134,7 +148,7 @@ function draw() {
   ctx.fillText("Score: " + score, 20, 40);
 
   if (gameOver) {
-    ctx.fillText("GAME OVER 👻", 110, 300);
+    ctx.fillText("GAME OVER 👻", 100, 300);
   }
 }
 
@@ -152,7 +166,7 @@ function gameLoop() {
 
 function jump() {
   if (!gameOver) {
-    velocity = -8;
+    velocity = -10;
     jumpSound.play();
   }
 }
